@@ -1,0 +1,6 @@
+declare module 'react-icons/ai'
+declare module 'react-icons/bi'
+declare module 'react-icons/bs'
+declare module 'react-icons/io5'
+declare module 'react-icons/md'
+declare module 'react-icons/*'
