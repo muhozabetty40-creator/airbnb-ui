@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaTimes, FaCheck, FaFilter } from 'react-icons/fa'
+import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaTimes, FaFilter } from 'react-icons/fa'
 import { apiService } from '../../../api'
 
 export default function BookingsPage() {

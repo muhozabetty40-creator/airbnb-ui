@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { FaStar, FaUser, FaCalendarAlt } from 'react-icons/fa'
+import { FaStar, FaCalendarAlt } from 'react-icons/fa'
 import { apiService } from '../../../api'
 
 export default function ReviewsPage() {

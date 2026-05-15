@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai'
 import { BiUserPlus } from 'react-icons/bi'
 import { BsMoon } from 'react-icons/bs'
-import { IoAddOutline, IoMenuOutline, IoCloseOutline } from 'react-icons/io5'
+import { IoMenuOutline, IoCloseOutline } from 'react-icons/io5'
 import { MdLogout } from 'react-icons/md'
 import { useFavorites } from '../../features/listings/hooks/useFavorites'
 import { useStore } from '../../store/StoreContext'
@@ -15,7 +15,6 @@ export default function Navbar() {
   const [favOpen, setFavOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const { count } = useFavorites()
-  const { dispatch } = useStore()
   const { isAuthenticated, logout, email } = useAuth()
   const navigate = useNavigate()
   const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null

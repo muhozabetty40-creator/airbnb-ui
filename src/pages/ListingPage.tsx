@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { FaMapMarkerAlt, FaFilter, FaThLarge, FaList, FaHeart, FaRegHeart, FaStar } from 'react-icons/fa'
+import { FaMapMarkerAlt, FaFilter, FaThLarge, FaList, FaRegHeart, FaStar } from 'react-icons/fa'
 import { apiService } from '../api'
 
 const CATEGORIES = [

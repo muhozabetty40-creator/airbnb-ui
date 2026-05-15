@@ -3,7 +3,7 @@ import { NavLink, useNavigate, Routes, Route } from 'react-router-dom'
 import {
   AiOutlineDashboard, AiOutlinePlus, AiOutlineWallet,
   AiOutlineMessage, AiOutlineBook, AiOutlineUser,
-  AiOutlineMenu, AiOutlineStar, AiOutlineLogout
+  AiOutlineLogout
 } from 'react-icons/ai'
 import { BsListUl } from 'react-icons/bs'
 import { FaUsers, FaList } from 'react-icons/fa'
@@ -20,10 +20,6 @@ import './DashboardPage.css'
 export default function DashboardPage() {
   const { email, logout, role } = useAuth()
   const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  const name = email ? email.split('@')[0].replace(/[._]/g, ' ') : 'User'
-  const displayName = name.charAt(0).toUpperCase() + name.slice(1)
 
   const handleLogout = () => {
     logout()

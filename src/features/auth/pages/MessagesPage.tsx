@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { FaPaperPlane, FaUser } from 'react-icons/fa'
+import { FaPaperPlane } from 'react-icons/fa'
 import { apiService } from '../../../api'
 
 export default function MessagesPage() {
