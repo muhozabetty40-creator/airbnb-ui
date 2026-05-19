@@ -15,7 +15,6 @@ const ListingDetail = lazy(() => import('./features/listings/pages/ListingDetail
 const ListingPage = lazy(() => import('./pages/ListingPage'))
 const DashboardPage = lazy(() => import('./features/auth/pages/DashboardPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
-const AddListingPage = lazy(() => import('./pages/AddListingPage'))
 const BookingPage = lazy(() => import('./pages/BookingPage'))
 
 NProgress.configure({ showSpinner: false })
@@ -52,14 +51,6 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/add-listing"
-            element={
-              <ProtectedRoute>
-                <AddListingPage />
               </ProtectedRoute>
             }
           />

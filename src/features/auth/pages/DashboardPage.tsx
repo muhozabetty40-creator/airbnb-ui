@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, Routes, Route } from 'react-router-dom'
 import {
-  AiOutlineDashboard, AiOutlinePlus, AiOutlineWallet,
+  AiOutlineDashboard, AiOutlineWallet,
   AiOutlineMessage, AiOutlineBook, AiOutlineUser,
   AiOutlineLogout
 } from 'react-icons/ai'
@@ -15,11 +15,14 @@ import MessagesPage from './MessagesPage'
 import WalletPage from './WalletPage'
 import HostDashboard from './HostDashboard'
 import GuestDashboard from './GuestDashboard'
+import AdminDashboard from './AdminDashboard'
+import AddListingDashboard from './AddListingDashboard'
 import './DashboardPage.css'
 
 export default function DashboardPage() {
   const { email, logout, role } = useAuth()
   const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const handleLogout = () => {
     logout()
@@ -29,7 +32,6 @@ export default function DashboardPage() {
   // Host Navigation
   const HOST_NAV = [
     { icon: <AiOutlineDashboard size={18} />, label: 'Dashboard', to: '/dashboard' },
-    { icon: <AiOutlinePlus size={18} />, label: 'Add Listing', to: '/add-listing' },
     { icon: <BsListUl size={18} />, label: 'My Listings', to: '/dashboard/listings' },
     { icon: <AiOutlineBook size={18} />, label: 'My Bookings', to: '/dashboard/bookings' },
     { icon: <AiOutlineWallet size={18} />, label: 'Earnings', to: '/dashboard/wallet' },
@@ -97,12 +99,13 @@ export default function DashboardPage() {
       {/* ── Main ── */}
       <div className="db-main">
         <Routes>
-          <Route path="/" element={role === 'HOST' ? <HostDashboard /> : <GuestDashboard />} />
+          <Route path="/" element={role === 'HOST' ? <HostDashboard /> : role === 'ADMIN' ? <AdminDashboard /> : <GuestDashboard />} />
           <Route path="/bookings" element={<BookingsPage />} />
           <Route path="/listings" element={<MyListingsPage />} />
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/add-listing" element={<AddListingDashboard />} />
         </Routes>
       </div>
     </div>

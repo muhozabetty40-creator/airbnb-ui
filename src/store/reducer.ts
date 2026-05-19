@@ -5,6 +5,7 @@ export const initialState: State = {
   loading: false,
   filter: '',
   saved: [],
+  savedApiListings: [],
 }
 
 export function reducer(state: State, action: Action): State {
@@ -22,7 +23,16 @@ export function reducer(state: State, action: Action): State {
           ? state.saved.filter(id => id !== action.payload)
           : [...state.saved, action.payload],
       }
+    case 'TOGGLE_API_FAVORITE': {
+      const exists = state.savedApiListings.some(l => l.id === action.payload.id)
+      return {
+        ...state,
+        savedApiListings: exists
+          ? state.savedApiListings.filter(l => l.id !== action.payload.id)
+          : [...state.savedApiListings, action.payload],
+      }
+    }
     case 'RESET':
-      return { ...state, filter: '', saved: [] }
+      return { ...state, filter: '', saved: [], savedApiListings: [] }
   }
 }

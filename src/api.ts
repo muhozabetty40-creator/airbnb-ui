@@ -508,6 +508,146 @@ class ApiService {
 
     return response.json();
   }
+
+  async sendMessage(data: { receiverId: string; content: string }) {
+    const response = await fetch(`${API_BASE_URL}/messages`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async getMessages(conversationWith?: string) {
+    const url = conversationWith
+      ? `${API_BASE_URL}/messages?conversationWith=${conversationWith}`
+      : `${API_BASE_URL}/messages`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async getConversations() {
+    const response = await fetch(`${API_BASE_URL}/messages/conversations`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async markMessageAsRead(messageId: string) {
+    const response = await fetch(`${API_BASE_URL}/messages/${messageId}/read`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async getNotifications() {
+    const response = await fetch(`${API_BASE_URL}/notifications`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async getUnreadNotificationCount() {
+    const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async approveBooking(bookingId: string) {
+    const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/approve`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async cancelBooking(bookingId: string) {
+    const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/cancel`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
 }
 
 export const apiService = new ApiService();

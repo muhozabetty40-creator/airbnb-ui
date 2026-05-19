@@ -1,453 +1,213 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { FaMapMarkerAlt, FaFilter, FaThLarge, FaList, FaRegHeart, FaStar } from 'react-icons/fa'
+import { FaMapMarkerAlt, FaFilter, FaStar, FaBed, FaShower, FaUsers, FaHeart, FaRegHeart, FaTimes } from 'react-icons/fa'
 import { apiService } from '../api'
+import { useFavorites } from '../features/listings/hooks/useFavorites'
 
-const CATEGORIES = [
-  { name: 'Eat & Drink', count: 62 },
-  { name: 'Coaching', count: 31 },
-  { name: 'Apartments', count: 20 },
-  { name: 'Services', count: 43 },
-  { name: 'Classifieds', count: 16 },
-  { name: 'Fitness', count: 22 },
-  { name: 'Events', count: 21 }
-]
+const TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'CABIN']
 
 export default function ListingPage() {
   const navigate = useNavigate()
+  const { toggleApi, isApiSaved } = useFavorites()
   const [listings, setListings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedLocation, setSelectedLocation] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [minPrice, setMinPrice] = useState(500)
-  const [maxPrice, setMaxPrice] = useState(5000)
-  const [radius, setRadius] = useState(0.5)
+  const [liked, setLiked] = useState<Set<string>>(new Set())
+
+  const [search, setSearch] = useState('')
+  const [location, setLocation] = useState('')
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([])
+  const [minPrice, setMinPrice] = useState(0)
+  const [maxPrice, setMaxPrice] = useState(10000)
 
   useEffect(() => {
-    loadListings()
+    apiService.getListings(1, 100)
+      .then(r => setListings(r.data || []))
+      .catch(e => toast.error(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false))
   }, [])
 
-  const loadListings = async () => {
-    try {
-      setLoading(true)
-      const response = await apiService.getListings(1, 50)
-      setListings(response.data || [])
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load listings'
-      toast.error(errorMessage)
-    } finally {
-      setLoading(false)
-    }
+  const toggleType = (t: string) =>
+    setSelectedTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
+
+  const toggleLike = (e: React.MouseEvent, listing: any) => {
+    e.stopPropagation()
+    toggleApi({ id: listing.id, title: listing.title, location: listing.location, pricePerNight: listing.pricePerNight, rating: listing.rating, image: listing.image, type: listing.type, guests: listing.guests, bedrooms: listing.bedrooms, bathrooms: listing.bathrooms })
   }
 
-  const filteredListings = listings.filter(listing => {
-    const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         listing.description.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesLocation = !selectedLocation || listing.location.toLowerCase().includes(selectedLocation.toLowerCase())
-    const matchesPrice = listing.pricePerNight >= minPrice && listing.pricePerNight <= maxPrice
-    return matchesSearch && matchesLocation && matchesPrice
+  const clearFilters = () => {
+    setSearch(''); setLocation(''); setSelectedTypes([]); setMinPrice(0); setMaxPrice(10000)
+  }
+
+  const filtered = listings.filter(l => {
+    const q = search.toLowerCase()
+    return (
+      (!search || l.title?.toLowerCase().includes(q) || l.description?.toLowerCase().includes(q)) &&
+      (!location || l.location?.toLowerCase().includes(location.toLowerCase())) &&
+      (!selectedTypes.length || selectedTypes.includes(l.type)) &&
+      l.pricePerNight >= minPrice && l.pricePerNight <= maxPrice
+    )
   })
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      {/* Search Bar */}
-      <div style={{ backgroundColor: 'white', padding: '20px', borderBottom: '1px solid #e0e0e0' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 150px 1fr 200px', gap: '12px', alignItems: 'center' }}>
+    <div style={{ display: 'flex', minHeight: 'calc(100vh - 61px)', background: '#f7f8fa' }}>
+
+      {/* ── Fixed Sidebar ── */}
+      <aside style={{
+        width: 260, flexShrink: 0, background: '#fff', borderRight: '1px solid #e5e7eb',
+        position: 'fixed', top: 61, left: 0, bottom: 0,
+        overflowY: 'auto', padding: '24px 20px',
+        display: 'flex', flexDirection: 'column', gap: 28,
+        zIndex: 50
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#111827' }}>
+            <FaFilter size={14} color="#ff5724" /> Filters
+          </span>
+          <button onClick={clearFilters} style={{ background: 'none', border: 'none', fontSize: 12, color: '#ff5724', cursor: 'pointer', fontWeight: 600 }}>
+            Clear all
+          </button>
+        </div>
+
+        {/* Search */}
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Search</p>
           <input
-            type="text"
-            placeholder="What are you looking for?"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              padding: '12px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '14px',
-              outline: 'none'
-            }}
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Title or description..."
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
           />
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FaMapMarkerAlt size={14} color="#ff385c" />
-            <select
-              value={radius}
-              onChange={(e) => setRadius(Number(e.target.value))}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                fontSize: '13px',
-                outline: 'none'
-              }}
-            >
-              <option value={0.5}>0.5 km</option>
-              <option value={1}>1 km</option>
-              <option value={5}>5 km</option>
-              <option value={10}>10 km</option>
-            </select>
+        </div>
+
+        {/* Location */}
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Location</p>
+          <div style={{ position: 'relative' }}>
+            <FaMapMarkerAlt size={12} color="#ff5724" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              value={location} onChange={e => setLocation(e.target.value)}
+              placeholder="City or country..."
+              style={{ width: '100%', padding: '9px 12px 9px 28px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+            />
           </div>
+        </div>
 
-          <input
-            type="text"
-            placeholder="Select Location"
-            value={selectedLocation}
-            onChange={(e) => setSelectedLocation(e.target.value)}
-            style={{
-              padding: '12px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '14px',
-              outline: 'none'
-            }}
-          />
+        {/* Price range */}
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Price / Night</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 10 }}>
+            <span>${minPrice}</span><span>${maxPrice}</span>
+          </div>
+          <input type="range" min={0} max={10000} step={50} value={minPrice}
+            onChange={e => setMinPrice(Math.min(Number(e.target.value), maxPrice - 50))}
+            style={{ width: '100%', accentColor: '#ff5724', marginBottom: 6 }} />
+          <input type="range" min={0} max={10000} step={50} value={maxPrice}
+            onChange={e => setMaxPrice(Math.max(Number(e.target.value), minPrice + 50))}
+            style={{ width: '100%', accentColor: '#ff5724' }} />
+        </div>
 
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            style={{
-              padding: '12px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '14px',
-              outline: 'none'
-            }}
-          >
-            <option value="">All Categories</option>
-            {CATEGORIES.map(cat => (
-              <option key={cat.name} value={cat.name}>{cat.name}</option>
+        {/* Property type */}
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Property Type</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {TYPES.map(t => (
+              <label key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+                <input type="checkbox" checked={selectedTypes.includes(t)} onChange={() => toggleType(t)}
+                  style={{ width: 16, height: 16, accentColor: '#ff5724', cursor: 'pointer' }} />
+                <span style={{ color: selectedTypes.includes(t) ? '#ff5724' : '#374151', fontWeight: selectedTypes.includes(t) ? 600 : 400 }}>
+                  {t.charAt(0) + t.slice(1).toLowerCase()}
+                </span>
+              </label>
             ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '30px 20px', display: 'grid', gridTemplateColumns: '300px 1fr', gap: '30px' }}>
-        
-        {/* Sidebar */}
-        <div>
-          {/* Price Filter */}
-          <div style={{ marginBottom: '40px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px', color: '#1a1a1a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaFilter size={16} color="#ff385c" /> Price Filter
-            </h3>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>
-              Select min and max price range
-            </p>
-
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-              <input
-                type="number"
-                value={minPrice}
-                onChange={(e) => setMinPrice(Number(e.target.value))}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  backgroundColor: '#1a1a1a',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  textAlign: 'center'
-                }}
-              />
-              <input
-                type="number"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  backgroundColor: '#1a1a1a',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  textAlign: 'center'
-                }}
-              />
-              <div style={{ padding: '8px 12px', backgroundColor: '#f0f0f0', borderRadius: '6px', fontSize: '13px', color: '#666' }}>
-                $5 000
-              </div>
-            </div>
-
-            <input
-              type="range"
-              min="0"
-              max="10000"
-              value={minPrice}
-              onChange={(e) => setMinPrice(Number(e.target.value))}
-              style={{ width: '100%', marginBottom: '8px' }}
-            />
-            <input
-              type="range"
-              min="0"
-              max="10000"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
-              style={{ width: '100%' }}
-            />
           </div>
+        </div>
+      </aside>
 
-          {/* Categories */}
+      {/* ── Main content ── */}
+      <main style={{ flex: 1, marginLeft: 260, padding: '28px 28px 48px', minWidth: 0 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px', color: '#1a1a1a' }}>
-              Categories
-            </h3>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>
-              Duis a leo sit amet odio volutpat actor ut a lorem.
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111827' }}>All Listings</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#9ca3af' }}>
+              {loading ? 'Loading...' : `${filtered.length} propert${filtered.length === 1 ? 'y' : 'ies'} found`}
             </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {CATEGORIES.map(category => (
-                <label key={category.name} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedCategory === category.name}
-                    onChange={(e) => setSelectedCategory(e.target.checked ? category.name : '')}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span style={{ color: '#1a1a1a', fontWeight: selectedCategory === category.name ? '600' : '400' }}>
-                    {category.name}
-                  </span>
-                  <span style={{ color: '#999', fontSize: '13px' }}>
-                    ({category.count})
-                  </span>
-                </label>
-              ))}
-            </div>
           </div>
-        </div>
-
-        {/* Listings */}
-        <div>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1a1a1a' }}>
-              All <span style={{ fontWeight: '700' }}>{filteredListings.length}</span> listing found
-            </h2>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setViewMode('grid')}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  border: viewMode === 'grid' ? '2px solid #ff385c' : '1px solid #ddd',
-                  borderRadius: '6px',
-                  backgroundColor: viewMode === 'grid' ? '#fff5f7' : 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <FaThLarge size={16} color={viewMode === 'grid' ? '#ff385c' : '#999'} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  border: viewMode === 'list' ? '2px solid #ff385c' : '1px solid #ddd',
-                  borderRadius: '6px',
-                  backgroundColor: viewMode === 'list' ? '#fff5f7' : 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <FaList size={16} color={viewMode === 'list' ? '#ff385c' : '#999'} />
-              </button>
-            </div>
-          </div>
-
-          {/* Listings Grid/List */}
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <p style={{ fontSize: '16px', color: '#666' }}>Loading listings...</p>
-            </div>
-          ) : filteredListings.length > 0 ? (
-            <div style={{
-              display: viewMode === 'grid' ? 'grid' : 'flex',
-              gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(350px, 1fr))' : undefined,
-              flexDirection: viewMode === 'list' ? 'column' : undefined,
-              gap: '24px'
-            }}>
-              {filteredListings.map((listing) => (
-                <div
-                  key={listing.id}
-                  onClick={() => navigate(`/listings/${listing.id}`)}
-                  style={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    display: viewMode === 'list' ? 'grid' : undefined,
-                    gridTemplateColumns: viewMode === 'list' ? '300px 1fr' : undefined,
-                    gap: viewMode === 'list' ? '20px' : undefined
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)'
-                    e.currentTarget.style.transform = 'translateY(-4px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-                    e.currentTarget.style.transform = 'translateY(0)'
-                  }}
-                >
-                  {/* Image */}
-                  <div style={{ position: 'relative', height: viewMode === 'list' ? '250px' : '200px', overflow: 'hidden', backgroundColor: '#f0f0f0' }}>
-                    {listing.image ? (
-                      <img
-                        src={listing.image}
-                        alt={listing.title}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover'
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/350x200?text=No+Image'
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#e0e0e0',
-                        color: '#999',
-                        fontSize: '14px'
-                      }}>
-                        No Image Available
-                      </div>
-                    )}
-
-                    {/* Featured Badge */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '12px',
-                      left: '12px',
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      color: 'white',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
-                      <FaStar size={12} /> Featured
-                    </div>
-
-                    {/* Discount Badge */}
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '12px',
-                      left: '12px',
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      color: 'white',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: '600'
-                    }}>
-                      $100 off $399: eblwc
-                    </div>
-
-                    {/* Favorite Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toast.success('Added to favorites!')
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '12px',
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: 'white',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <FaRegHeart size={18} color="#ff385c" />
-                    </button>
-                  </div>
-
-                  {/* Content */}
-                  <div style={{ padding: viewMode === 'list' ? '20px 0' : '16px' }}>
-                    {/* Rating */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <FaStar size={14} color="#ff385c" />
-                      <span style={{ color: '#ff385c', fontSize: '16px', fontWeight: '600' }}>(4.5)</span>
-                      <span style={{ color: '#ff385c', fontSize: '14px' }}>2,391 reviews</span>
-                    </div>
-
-                    {/* Title */}
-                    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#1a1a1a' }}>
-                      {listing.title}
-                      <span style={{ marginLeft: '8px', fontSize: '16px' }}>✓</span>
-                    </h3>
-
-                    {/* Description */}
-                    <p style={{
-                      fontSize: '14px',
-                      color: '#666',
-                      marginBottom: '12px',
-                      lineHeight: '1.5',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical'
-                    }}>
-                      {listing.description}
-                    </p>
-
-                    {/* Contact Info */}
-                    <div style={{ display: 'flex', gap: '20px', fontSize: '13px', color: '#666' }}>
-                      <span>📞 (123) 456-7890</span>
-                      <span style={{ cursor: 'pointer', color: '#ff385c' }}>📍 Directions</span>
-                    </div>
-
-                    {/* Price */}
-                    {viewMode === 'list' && (
-                      <div style={{ marginTop: '12px' }}>
-                        <p style={{ fontSize: '20px', fontWeight: '700', color: '#ff385c' }}>
-                          ${listing.pricePerNight}
-                        </p>
-                        <p style={{ fontSize: '12px', color: '#999' }}>per night</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <p style={{ fontSize: '16px', color: '#666' }}>No listings found matching your criteria</p>
-            </div>
+          {(search || location || selectedTypes.length > 0 || minPrice > 0 || maxPrice < 10000) && (
+            <button onClick={clearFilters} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#fee2e2', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#ef4444', cursor: 'pointer' }}>
+              <FaTimes size={11} /> Clear filters
+            </button>
           )}
         </div>
-      </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: '#9ca3af', fontSize: 15 }}>Loading listings...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: '#9ca3af', fontSize: 15 }}>No listings match your filters.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+            {filtered.map(listing => (
+              <div
+                key={listing.id}
+                onClick={() => navigate(`/listings/${listing.id}`)}
+                style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #f3f4f6', cursor: 'pointer', transition: 'box-shadow 0.2s, transform 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-3px)' }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
+              >
+                {/* Image */}
+                <div style={{ position: 'relative', height: 180, background: '#f3f4f6', overflow: 'hidden' }}>
+                  <img
+                    src={listing.image || 'https://placehold.co/400x180?text=No+Image'}
+                    alt={listing.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={e => { e.currentTarget.src = 'https://placehold.co/400x180?text=No+Image' }}
+                  />
+                  {/* Type badge */}
+                  <span style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, backdropFilter: 'blur(4px)' }}>
+                    {listing.type}
+                  </span>
+                  {/* Like button */}
+                  <button
+                    onClick={e => toggleLike(e, listing)}
+                    style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: '50%', background: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
+                  >
+                    {isApiSaved(listing.id) ? <FaHeart size={14} color="#ff5724" /> : <FaRegHeart size={14} color="#9ca3af" />}
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div style={{ padding: '14px 16px 16px' }}>
+                  <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {listing.title}
+                  </h3>
+                  <p style={{ margin: '0 0 10px', fontSize: 12, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <FaMapMarkerAlt size={10} color="#ff5724" />{listing.location}
+                  </p>
+
+                  {/* Meta row */}
+                  <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#6b7280', marginBottom: 12 }}>
+                    {listing.bedrooms != null && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><FaBed size={11} />{listing.bedrooms} bed</span>}
+                    {listing.bathrooms != null && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><FaShower size={11} />{listing.bathrooms} bath</span>}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><FaUsers size={11} />{listing.guests}</span>
+                  </div>
+
+                  {/* Rating + price */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#6b7280' }}>
+                      <FaStar size={11} color="#f59e0b" />
+                      {listing.rating?.toFixed(1) || '4.5'}
+                    </span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
+                      <span style={{ color: '#ff5724' }}>${listing.pricePerNight}</span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>/night</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   )
 }

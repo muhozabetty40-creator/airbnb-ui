@@ -1,323 +1,186 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { FaUser, FaEnvelope, FaPhone, FaFileUpload, FaCheck } from 'react-icons/fa'
+import { FaUser, FaEnvelope, FaPhone, FaEdit, FaCheck, FaTimes } from 'react-icons/fa'
 import { useAuth } from '../features/auth/hooks/useAuth'
 import { apiService } from '../api'
+import '../features/auth/pages/DashboardPage.css'
+
+interface ProfileData {
+  name: string
+  username: string
+  email: string
+  phone: string
+  bio: string
+  avatar: string
+  role: string
+}
 
 export default function ProfilePage() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    username: '',
-    email: '',
-    phone: '',
-    bio: '',
-    avatar: ''
-  })
-  const [previewUrl, setPreviewUrl] = useState<string>('')
+  const [editing, setEditing] = useState(false)
+  const [profile, setProfile] = useState<ProfileData>({ name: '', username: '', email: '', phone: '', bio: '', avatar: '', role: '' })
+  const [form, setForm] = useState<ProfileData>({ name: '', username: '', email: '', phone: '', bio: '', avatar: '', role: '' })
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-
-    const loadProfile = async () => {
-      try {
-        setLoading(true)
-        const response = await apiService.getProfile()
-        setFormData({
-          name: response.user.name || '',
-          username: response.user.username || '',
-          email: response.user.email || '',
-          phone: response.user.phone || '',
-          bio: response.user.bio || '',
-          avatar: response.user.avatar || ''
-        })
-        if (response.user.avatar) {
-          setPreviewUrl(response.user.avatar)
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load profile'
-        toast.error(errorMessage)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadProfile()
+    if (!isAuthenticated) { navigate('/login'); return }
+    apiService.getProfile()
+      .then(res => {
+        const data = { name: res.user.name || '', username: res.user.username || '', email: res.user.email || '', phone: res.user.phone || '', bio: res.user.bio || '', avatar: res.user.avatar || '', role: res.user.role || '' }
+        setProfile(data)
+        setForm(data)
+      })
+      .catch(err => toast.error(err instanceof Error ? err.message : 'Failed to load profile'))
+      .finally(() => setLoading(false))
   }, [isAuthenticated, navigate])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB')
-      return
-    }
-
-    try {
-      setUploading(true)
-      const response = await apiService.uploadAvatar(file)
-      
-      setFormData(prev => ({
-        ...prev,
-        avatar: response.url
-      }))
-      setPreviewUrl(response.url)
-      toast.success('Avatar uploaded successfully!')
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload avatar'
-      toast.error(errorMessage)
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     try {
       setSaving(true)
-      await apiService.updateProfile({
-        name: formData.name,
-        username: formData.username,
-        phone: formData.phone,
-        bio: formData.bio,
-        avatar: formData.avatar
-      })
-      toast.success('Profile updated successfully!')
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile'
-      toast.error(errorMessage)
+      await apiService.updateProfile({ name: form.name, username: form.username, phone: form.phone, bio: form.bio, avatar: form.avatar })
+      setProfile(form)
+      setEditing(false)
+      toast.success('Profile updated!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile')
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <p>Loading profile...</p>
-      </div>
-    )
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Max file size is 5MB'); return }
+    try {
+      const res = await apiService.uploadAvatar(file)
+      setForm(f => ({ ...f, avatar: res.url }))
+      toast.success('Avatar uploaded!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
+    }
   }
 
-  return (
-    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '30px' }}>
-        <FaUser size={28} color="#ff385c" />
-        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '600' }}>My Profile</h1>
-      </div>
+  const roleLabel = profile.role === 'HOST' ? '🏠 Host' : profile.role === 'ADMIN' ? '🛡️ Admin' : '👤 Guest'
+  const initials = profile.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : profile.email?.[0]?.toUpperCase() || 'U'
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Avatar Upload */}
-        <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontWeight: '500' }}>
-            <FaFileUpload size={16} color="#ff385c" />
-            Profile Picture
-          </label>
-          <div style={{
-            display: 'flex',
-            gap: '20px',
-            alignItems: 'flex-start'
-          }}>
-            {previewUrl && (
-              <div style={{ textAlign: 'center' }}>
-                <img
-                  src={previewUrl}
-                  alt="Avatar preview"
-                  style={{
-                    width: '100px',
-                    height: '100px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '3px solid #ff385c'
-                  }}
-                />
-                <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>Current</p>
-              </div>
+  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading profile...</div>
+
+  return (
+    <div style={{ maxWidth: '760px', margin: '40px auto', padding: '0 20px 60px' }}>
+
+      {/* Header card */}
+      <div className="db-banner" style={{ marginBottom: '24px' }}>
+        <div className="db-banner__content">
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: '#fff', flexShrink: 0, overflow: 'hidden' }}>
+            {profile.avatar ? <img src={profile.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+          </div>
+          <div>
+            <p className="db-banner__title">{profile.name || profile.username || 'My Profile'}</p>
+            <p className="db-banner__desc">{roleLabel} · {profile.email}</p>
+            {!editing && (
+              <button className="db-banner__btn" onClick={() => setEditing(true)}>
+                <FaEdit size={12} style={{ marginRight: 6 }} />Edit Profile
+              </button>
             )}
-            <div style={{ flex: 1 }}>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                disabled={uploading}
-                style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  cursor: uploading ? 'not-allowed' : 'pointer'
-                }}
-              />
-              <p style={{ fontSize: '12px', color: '#666' }}>
-                Supported formats: JPG, PNG, GIF (Max 5MB)
-              </p>
-              {uploading && (
-                <p style={{ fontSize: '12px', color: '#ff385c', marginTop: '8px' }}>
-                  Uploading...
-                </p>
-              )}
-            </div>
           </div>
         </div>
+        <div className="db-banner__illustration">👤</div>
+      </div>
 
-        {/* Name */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500' }}>
-            <FaUser size={14} color="#ff385c" />
-            Full Name
-          </label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          />
+      {!editing ? (
+        /* ── View Mode ── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[
+            { icon: <FaUser size={14} color="#ff5724" />, label: 'Full Name', value: profile.name || '—' },
+            { icon: <FaUser size={14} color="#ff5724" />, label: 'Username', value: profile.username ? `@${profile.username}` : '—' },
+            { icon: <FaEnvelope size={14} color="#ff5724" />, label: 'Email', value: profile.email },
+            { icon: <FaPhone size={14} color="#ff5724" />, label: 'Phone', value: profile.phone || '—' },
+          ].map(row => (
+            <div key={row.label} className="db-stat-card" style={{ padding: '16px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {row.icon}
+                <div>
+                  <p className="db-stat-card__label" style={{ marginBottom: 2 }}>{row.label}</p>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111827' }}>{row.value}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+          {profile.bio && (
+            <div className="db-metric" style={{ padding: '20px 24px' }}>
+              <span className="db-metric__label">Bio</span>
+              <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.6 }}>{profile.bio}</p>
+            </div>
+          )}
         </div>
+      ) : (
+        /* ── Edit Mode ── */
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Username */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500' }}>
-            <FaUser size={14} color="#ff385c" />
-            Username
-          </label>
-          <input
-            type="text"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
+          {/* Avatar */}
+          <div className="db-metric">
+            <span className="db-metric__label">Profile Picture</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ff5724', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                {form.avatar ? <img src={form.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+              </div>
+              <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ fontSize: 13 }} />
+            </div>
+          </div>
 
-        {/* Email (Read-only) */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500' }}>
-            <FaEnvelope size={14} color="#ff385c" />
-            Email
-          </label>
-          <input
-            type="email"
-            value={formData.email}
-            disabled
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '14px',
-              backgroundColor: '#f5f5f5',
-              boxSizing: 'border-box',
-              cursor: 'not-allowed'
-            }}
-          />
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Email cannot be changed</p>
-        </div>
+          {[
+            { label: 'Full Name', name: 'name', type: 'text', placeholder: 'Your full name' },
+            { label: 'Username', name: 'username', type: 'text', placeholder: 'Your username' },
+            { label: 'Phone', name: 'phone', type: 'tel', placeholder: '+1 234 567 8900' },
+          ].map(field => (
+            <div key={field.name} className="db-metric" style={{ gap: 8 }}>
+              <span className="db-metric__label">{field.label}</span>
+              <input
+                type={field.type}
+                name={field.name}
+                value={(form as any)[field.name]}
+                onChange={e => setForm(f => ({ ...f, [field.name]: e.target.value }))}
+                placeholder={field.placeholder}
+                style={{ padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, outline: 'none', width: '100%' }}
+              />
+            </div>
+          ))}
 
-        {/* Phone */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500' }}>
-            <FaPhone size={14} color="#ff385c" />
-            Phone Number
-          </label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
+          {/* Email read-only */}
+          <div className="db-metric" style={{ gap: 8 }}>
+            <span className="db-metric__label">Email <span style={{ color: '#9ca3af', fontWeight: 400 }}>(cannot be changed)</span></span>
+            <input value={profile.email} disabled style={{ padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, background: '#f9fafb', color: '#9ca3af', width: '100%' }} />
+          </div>
 
-        {/* Bio */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-            Bio
-          </label>
-          <textarea
-            name="bio"
-            value={formData.bio}
-            onChange={handleChange}
-            rows={4}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '14px',
-              boxSizing: 'border-box',
-              fontFamily: 'inherit',
-              resize: 'vertical'
-            }}
-            placeholder="Tell us about yourself..."
-          />
-        </div>
+          {/* Bio */}
+          <div className="db-metric" style={{ gap: 8 }}>
+            <span className="db-metric__label">Bio</span>
+            <textarea
+              name="bio"
+              value={form.bio}
+              onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+              rows={3}
+              placeholder="Tell us about yourself..."
+              style={{ padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', outline: 'none', width: '100%' }}
+            />
+          </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={saving || uploading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#ff385c',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: (saving || uploading) ? 'not-allowed' : 'pointer',
-            opacity: (saving || uploading) ? 0.7 : 1,
-            transition: 'opacity 0.2s',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <FaCheck size={14} /> {saving ? 'Saving...' : 'Save Changes'}
-        </button>
-      </form>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button type="submit" disabled={saving} className="db-banner__btn" style={{ background: '#ff5724', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 10, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FaCheck size={13} /> {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button type="button" onClick={() => { setForm(profile); setEditing(false) }} className="db-btn db-btn--outline" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FaTimes size={13} /> Cancel
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   )
 }

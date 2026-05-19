@@ -48,7 +48,7 @@ export default function MyListingsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: '600', margin: 0 }}>My Listings</h2>
         <button
-          onClick={() => navigate('/add-listing')}
+          onClick={() => navigate('/dashboard/add-listing')}
           style={{
             padding: '10px 20px',
             backgroundColor: '#ff385c',
@@ -68,7 +68,7 @@ export default function MyListingsPage() {
         <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
           <p style={{ fontSize: '16px', color: '#666', marginBottom: '16px' }}>No listings yet</p>
           <button
-            onClick={() => navigate('/add-listing')}
+            onClick={() => navigate('/dashboard/add-listing')}
             style={{
               padding: '10px 20px',
               backgroundColor: '#ff385c',
