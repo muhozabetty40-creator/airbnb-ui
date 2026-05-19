@@ -47,6 +47,8 @@ export default function ListingDetail() {
     e.preventDefault()
     if (!isAuthenticated) { toast.error('Please login to book'); navigate('/login'); return }
     if (role !== 'GUEST') { toast.error('Only guests can book listings'); return }
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (listing?.userId === user.id) { toast.error('You cannot book your own listing'); return }
     if (!form.checkIn || !form.checkOut) { toast.error('Select check-in and check-out dates'); return }
     const checkIn = new Date(form.checkIn), checkOut = new Date(form.checkOut), today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -164,6 +166,7 @@ export default function ListingDetail() {
         </div>
 
         {/* ── Right — Booking card ── */}
+        {role === 'GUEST' ? (
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 20, padding: '28px', position: 'sticky', top: 80, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
           {/* Price */}
           <div style={{ marginBottom: 22 }}>
@@ -242,6 +245,11 @@ export default function ListingDetail() {
             </p>
           </form>
         </div>
+        ) : (
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 20, padding: '28px', position: 'sticky', top: 80, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: 14, color: '#6b7280' }}>Only guests can book listings</p>
+        </div>
+        )}
       </div>
     </div>
   )

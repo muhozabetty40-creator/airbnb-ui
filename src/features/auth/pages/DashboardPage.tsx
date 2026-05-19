@@ -45,12 +45,9 @@ export default function DashboardPage() {
     { icon: <AiOutlineMessage size={18} />, label: 'Messages', to: '/dashboard/messages' },
   ]
 
-  // Admin Navigation
+  // Admin Navigation - Only Dashboard
   const ADMIN_NAV = [
     { icon: <AiOutlineDashboard size={18} />, label: 'Dashboard', to: '/dashboard' },
-    { icon: <FaUsers size={18} />, label: 'Users', to: '/dashboard/users' },
-    { icon: <FaList size={18} />, label: 'Bookings', to: '/dashboard/admin-bookings' },
-    { icon: <BsListUl size={18} />, label: 'Listings', to: '/dashboard/admin-listings' },
   ]
 
   const navItems = role === 'HOST' ? HOST_NAV : role === 'ADMIN' ? ADMIN_NAV : GUEST_NAV

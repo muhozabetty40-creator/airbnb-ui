@@ -85,9 +85,6 @@ export default function Navbar() {
           <>
             <NavLink to="/" onClick={close} className={({ isActive }) => isActive && location.pathname === '/' ? 'nav-active' : ''}>Home</NavLink>
             <NavLink to="/listings" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Listings</NavLink>
-            <NavLink to="/dashboard" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Dashboard</NavLink>
-            <NavLink to="/dashboard/bookings" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>My Bookings</NavLink>
-            <NavLink to="/dashboard/messages" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Messages</NavLink>
           </>
         )}
 
@@ -96,12 +93,7 @@ export default function Navbar() {
           <>
             <NavLink to="/" onClick={close} className={({ isActive }) => isActive && location.pathname === '/' ? 'nav-active' : ''}>Home</NavLink>
             <NavLink to="/listings" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Browse</NavLink>
-            <NavLink to="/dashboard" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Dashboard</NavLink>
             <NavLink to="/add-listing" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Add Listing</NavLink>
-            <NavLink to="/dashboard/listings" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>My Listings</NavLink>
-            <NavLink to="/dashboard/bookings" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Bookings</NavLink>
-            <NavLink to="/dashboard/messages" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Messages</NavLink>
-            <NavLink to="/dashboard/wallet" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Earnings</NavLink>
           </>
         )}
 
@@ -109,10 +101,6 @@ export default function Navbar() {
         {isAdmin && (
           <>
             <NavLink to="/" onClick={close} className={({ isActive }) => isActive && location.pathname === '/' ? 'nav-active' : ''}>Home</NavLink>
-            <NavLink to="/dashboard" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Admin Panel</NavLink>
-            <NavLink to="/dashboard/bookings" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Bookings</NavLink>
-            <NavLink to="/dashboard/listings" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Listings</NavLink>
-            <NavLink to="/dashboard/messages" onClick={close} className={({ isActive }) => isActive ? 'nav-active' : ''}>Messages</NavLink>
           </>
         )}
 
