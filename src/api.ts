@@ -619,6 +619,21 @@ class ApiService {
     return response.json();
   }
 
+  async deleteNotification(notificationId: string) {
+    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
   async approveBooking(bookingId: string) {
     const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/approve`, {
       method: "PUT",

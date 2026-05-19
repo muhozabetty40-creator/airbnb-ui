@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaTimes,
-  FaCheckCircle, FaClock, FaBan, FaEye, FaMoneyBillWave
+  FaCheckCircle, FaClock, FaBan, FaEye, FaMoneyBillWave, FaCheck
 } from 'react-icons/fa'
+import { useAuth } from '../hooks/useAuth'
 import { apiService } from '../../../api'
 
 type Status = 'ALL' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'PAID'
@@ -26,10 +27,12 @@ const normalise = (b: any) => ({ ...b, status: (b.status || 'PENDING').toUpperCa
 
 export default function BookingsPage() {
   const navigate = useNavigate()
+  const { role } = useAuth()
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [active, setActive] = useState<Status>('ALL')
   const [cancelling, setCancelling] = useState<string | null>(null)
+  const [approving, setApproving] = useState<string | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -58,6 +61,20 @@ export default function BookingsPage() {
       toast.error(e instanceof Error ? e.message : 'Failed to cancel')
     } finally {
       setCancelling(null)
+    }
+  }
+
+  const approve = async (id: string) => {
+    if (!window.confirm('Approve this booking?')) return
+    try {
+      setApproving(id)
+      await apiService.approveBooking(id)
+      toast.success('Booking approved')
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to approve')
+    } finally {
+      setApproving(null)
     }
   }
 
@@ -225,6 +242,15 @@ export default function BookingsPage() {
                           style={{ padding: '5px 10px', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', color: '#374151', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}
                         >
                           <FaEye size={11} /> View
+                        </button>
+                      )}
+                      {role === 'HOST' && booking.status === 'PENDING' && (
+                        <button
+                          onClick={() => approve(booking.id)}
+                          disabled={approving === booking.id}
+                          style={{ padding: '5px 10px', background: '#d1fae5', border: 'none', borderRadius: 8, cursor: approving === booking.id ? 'not-allowed' : 'pointer', color: '#065f46', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, opacity: approving === booking.id ? 0.6 : 1 }}
+                        >
+                          <FaCheck size={11} /> {approving === booking.id ? '...' : 'Approve'}
                         </button>
                       )}
                       {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
